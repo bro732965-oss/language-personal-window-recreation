@@ -32,11 +32,17 @@ while True:
             
         elif b[0]=="picture":
             try:
-                parent = windows.get(b[2], win)
-                image = Image.open(b[1])
+                # Собираем имя файла (может содержать точки)
+                filename = ".".join(b[1:-3])
+                parent_name = b[-3]
+                x = int(b[-2])
+                y = int(b[-1])
+                
+                parent = windows.get(parent_name, win)
+                image = Image.open(filename)
                 photo = ImageTk.PhotoImage(image)
                 label = tk.Label(parent, image=photo)
-                label.place(x=int(b[3]), y=int(b[4]))
+                label.place(x=x, y=y)
                 label.image = photo
             except Exception as e:
                 print(f"Ошибка картинки: {e}")
@@ -59,26 +65,39 @@ while True:
                 
         elif b[0]=="msg" and b[1]=="box":
             parent = windows.get(b[2], win)
-            label = tk.Label(parent, text=b[3])
-            label.place(x=int(b[4]), y=int(b[5]))
+            # Собираем текст (может содержать точки)
+            text = ".".join(b[3:-2])
+            x = int(b[-2])
+            y = int(b[-1])
+            label = tk.Label(parent, text=text)
+            label.place(x=x, y=y)
             
         elif b[0]=="command" and b[1]=="audio":
             try:
+                # Собираем имя файла (может содержать точки)
+                filename = ".".join(b[2:-1])
+                loops = int(b[-1])
+                
                 pygame.mixer.init()
-                pygame.mixer.music.load(b[2])
-                pygame.mixer.music.play(int(b[3]))
+                pygame.mixer.music.load(filename)
+                pygame.mixer.music.play(loops)
             except Exception as e:
                 print(f"Ошибка аудио: {e}")
             
         elif b[0]=="command" and b[1]=="net":
-            webbrowser.open(b[2])
+            # Собираем URL (может содержать точки)
+            url = ".".join(b[2:])
+            webbrowser.open(url)
             
         elif b[0]=="get" and b[1]=="text":
             parent = windows.get(b[2], win)
             entry = tk.Entry(parent)
             entry.place(x=int(b[3]), y=int(b[4]))
             
-            def git(ent=entry, text=b[5], par=parent, x=b[3], y=b[4]):
+            # Собираем правильный ответ (может содержать точки)
+            correct = ".".join(b[5:])
+            
+            def git(ent=entry, text=correct, par=parent, x=b[3], y=b[4]):
                 if ent.get() == text:
                     label = tk.Label(par, text="Correct")
                     label.place(x=int(x), y=int(y)+30)
@@ -108,14 +127,19 @@ while True:
                                 windows["root"] = root
                             elif b2[0] == "rename":
                                 parent = windows.get(b2[1], win)
-                                parent.title(b2[2])
+                                parent.title(".".join(b2[2:]))
                             elif b2[0] == "picture":
                                 try:
-                                    parent = windows.get(b2[2], win)
-                                    image = Image.open(b2[1])
+                                    filename = ".".join(b2[1:-3])
+                                    parent_name = b2[-3]
+                                    x = int(b2[-2])
+                                    y = int(b2[-1])
+                                    
+                                    parent = windows.get(parent_name, win)
+                                    image = Image.open(filename)
                                     photo = ImageTk.PhotoImage(image)
                                     label = tk.Label(parent, image=photo)
-                                    label.place(x=int(b2[3]), y=int(b2[4]))
+                                    label.place(x=x, y=y)
                                     label.image = photo
                                 except Exception as e:
                                     print(f"Ошибка картинки: {e}")
@@ -135,22 +159,29 @@ while True:
                                         canvas.create_line(int(b2[3]), int(b2[4]), int(b2[5]), int(b2[6]), fill=b2[7], width=int(b2[8]))
                             elif b2[0] == "msg" and b2[1] == "box":
                                 parent = windows.get(b2[2], win)
-                                label = tk.Label(parent, text=b2[3])
-                                label.place(x=int(b2[4]), y=int(b2[5]))
+                                text = ".".join(b2[3:-2])
+                                x = int(b2[-2])
+                                y = int(b2[-1])
+                                label = tk.Label(parent, text=text)
+                                label.place(x=x, y=y)
                             elif b2[0] == "command" and b2[1] == "audio":
                                 try:
+                                    filename = ".".join(b2[2:-1])
+                                    loops = int(b2[-1])
                                     pygame.mixer.init()
-                                    pygame.mixer.music.load(b2[2])
-                                    pygame.mixer.music.play(int(b2[3]))
+                                    pygame.mixer.music.load(filename)
+                                    pygame.mixer.music.play(loops)
                                 except Exception as e:
                                     print(f"Ошибка аудио: {e}")
                             elif b2[0] == "command" and b2[1] == "net":
-                                webbrowser.open(b2[2])
+                                url = ".".join(b2[2:])
+                                webbrowser.open(url)
                             elif b2[0] == "get" and b2[1] == "text":
                                 parent = windows.get(b2[2], win)
                                 entry = tk.Entry(parent)
                                 entry.place(x=int(b2[3]), y=int(b2[4]))
-                                def git(ent=entry, text=b2[5], par=parent, x=b2[3], y=b2[4]):
+                                correct = ".".join(b2[5:])
+                                def git(ent=entry, text=correct, par=parent, x=b2[3], y=b2[4]):
                                     if ent.get() == text:
                                         label = tk.Label(par, text="Correct")
                                         label.place(x=int(x), y=int(y)+30)
