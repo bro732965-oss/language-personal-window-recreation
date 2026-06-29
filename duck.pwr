@@ -1,11 +1,11 @@
 root()
-rename win Уточка
-Gui.canvas.win.500.400.lightblue
-canvas.figure.create_oval.120.180.280.320.yellow.black.2
-canvas.figure.create_oval.240.110.330.190.yellow.black.2
-canvas.figure.create_oval.290.130.310.150.white.black.1
-canvas.figure.create_oval.296.137.304.143.black.black.1
-canvas.figure.create_polygon.330.140.370.150.330.160.orange.black.1
-canvas.figure.create_oval.160.210.230.270.yellow.black.2
-canvas.figure.create_polygon.110.230.70.260.110.280.yellow.black.2
-canvas.figure.create_oval.0.330.500.400.blue.black.1
+rename::win::Уточка
+Gui::canvas::win::500::400::lightblue
+canvas::figure::create_oval::120::180::280::320::yellow::black::2
+canvas::figure::create_oval::240::110::330::190::yellow::black::2
+canvas::figure::create_oval::290::130::310::150::white::black::1
+canvas::figure::create_oval::296::137::304::143::black::black::1
+canvas::figure::create_polygon::330::140::370::150::330::160::orange::black::1
+canvas::figure::create_oval::160::210::230::270::yellow::black::2
+canvas::figure::create_polygon::110::230::70::260::110::280::yellow::black::2
+canvas::figure::create_oval::0::330::500::400::blue::black::1
