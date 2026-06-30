@@ -2,8 +2,7 @@
 
 **Самый простой язык программирования для творчества!**
 
-![Пример программы: резиновая уточка](screenshots/Screenshot_2026-06-29-12-12-44-561_com.google.android.photopicker-edit.jpg) 
-
+![Пример программы: резиновая уточка](Screenshot_2026-06-29-12-12-44-561_com.google.android.photopicker-edit.jpg)
 ---
 
 ## Что это?
