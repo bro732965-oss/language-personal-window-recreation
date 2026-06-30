@@ -2,7 +2,9 @@
 
 **Самый простой язык программирования для творчества!**
 
-![таблица](Screenshot_2026-06-30-10-37-39-874_iiec.pyramide.python-edit.jpg)
+![таблица]
+(Screenshot_2026-06-30-17-18-51-
+745_iiec.pyramide.python-edit.jpg) 
 ![Готовая картина Мона Лиза](Screenshot_2026-06-30-10-48-30-341_iiec.pyramide.python-edit.jpg)
 
 ---
