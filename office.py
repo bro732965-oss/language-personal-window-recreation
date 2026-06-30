@@ -8,6 +8,49 @@ import subprocess
 from tkinter import messagebox
 import ast
 
+# ========== ЦВЕТА ДЛЯ КОНСОЛИ ==========
+class Colors:
+    GREEN = '\033[92m'
+    BLUE = '\033[94m'
+    YELLOW = '\033[93m'
+    RED = '\033[91m'
+    PURPLE = '\033[95m'
+    CYAN = '\033[96m'
+    WHITE = '\033[97m'
+    BOLD = '\033[1m'
+    END = '\033[0m'
+
+def color_print(text, color=Colors.WHITE, bold=False):
+    """Вывод цветного текста в консоль"""
+    if bold:
+        print(f"{Colors.BOLD}{color}{text}{Colors.END}")
+    else:
+        print(f"{color}{text}{Colors.END}")
+
+def highlight_command(cmd):
+    """Подсветка команды"""
+    cmd_parts = cmd.split("::")
+    highlighted = []
+    
+    for part in cmd_parts:
+        # Команды (синие)
+        if part in ["root", "rename", "color", "msg", "box", "console", "export", "import", "table", "copy", "open", "command", "Gui", "canvas", "get"]:
+            highlighted.append(f"{Colors.BLUE}{part}{Colors.END}")
+        # Числа (зелёные)
+        elif part.isdigit():
+            highlighted.append(f"{Colors.GREEN}{part}{Colors.END}")
+        # Пути и файлы (жёлтые)
+        elif "." in part or "/" in part or "\\" in part:
+            highlighted.append(f"{Colors.YELLOW}{part}{Colors.END}")
+        # Комментарии (серые)
+        elif part.startswith("#") or part.startswith("/"):
+            highlighted.append(f"{Colors.WHITE}{part}{Colors.END}")
+        # Параметры (пурпурные)
+        else:
+            highlighted.append(f"{Colors.PURPLE}{part}{Colors.END}")
+    
+    return "::".join(highlighted)
+
 boxGui = [
     "ROOT:root()",
     "RENAME:rename::win::MyApp",
@@ -61,11 +104,9 @@ def create_icon():
     try:
         from PIL import Image, ImageDraw
         
-        # Создаем изображение 256x256
         img = Image.new('RGB', (256, 256), '#F5F5DC')
         draw = ImageDraw.Draw(img)
         
-        # Ваша мозаика 3x3
         colors = ['#FF4444', '#4488FF', '#44CC44', '#FFCC00', '#AA44FF', '#FF8800', '#FF66AA', '#00CCFF', '#CC3366']
         x_positions = [0, 85, 170]
         y_positions = [0, 85, 170]
@@ -76,7 +117,6 @@ def create_icon():
             y = y_positions[i // 3]
             draw.rectangle([x, y, x+size, y+size], fill=color, outline='#333333', width=3)
         
-        # Рисуем линии-швы
         draw.line([0, 85, 256, 85], fill='#333333', width=3)
         draw.line([0, 170, 256, 170], fill='#333333', width=3)
         draw.line([85, 0, 85, 170], fill='#333333', width=3)
@@ -84,18 +124,20 @@ def create_icon():
         draw.line([85, 85, 85, 256], fill='#333333', width=3)
         draw.line([170, 85, 170, 256], fill='#333333', width=3)
         
-        # Сохраняем как ICO
         img.save('icon.ico', format='ICO', sizes=[(256, 256)])
-        print("✓ Icon created: icon.ico")
+        color_print("✓ Icon created: icon.ico", Colors.GREEN)
         return True
     except Exception as e:
-        print(f"Icon error: {e}")
+        color_print(f"Icon error: {e}", Colors.RED)
         return False
 
 while True:
     try:
-        a = input("*")
+        a = input("* ")
         b = a.split("::")
+        
+        # Подсветка введённой команды
+        color_print(f"→ {highlight_command(a)}", Colors.CYAN)
 
         if a == "root()":
             root = tk.Toplevel(win)
@@ -104,23 +146,24 @@ while True:
         elif b[0] == "console" and b[1] == "random":
             try:
                 num = random.randint(int(b[2]), int(b[3]))
-                print(f"Random number: {num}")
+                color_print(f"Random number: {num}", Colors.GREEN)
             except Exception as e:
-                print(f"Random error: {e}")
+                color_print(f"Random error: {e}", Colors.RED)
                 
         elif b[0] == "console" and b[1] == "randombox":
             try:
                 items = b[2:]
                 choice = random.choice(items)
-                print(f"Random choice: {choice}")
+                color_print(f"Random choice: {choice}", Colors.GREEN)
             except Exception as e:
-                print(f"Randombox error: {e}")
+                color_print(f"Randombox error: {e}", Colors.RED)
             
         elif b[0] == "copy":
             os.system('echo ' + b[1] + ' | termux-clipboard-set')
+            color_print(f"Copied: {b[1]}", Colors.GREEN)
             
         elif b[0] == "/":
-            print(b[1])
+            color_print(f"Comment: {b[1]}", Colors.WHITE)
             
         elif b[0] == "table":
             try:
@@ -139,9 +182,9 @@ while True:
                     entries.append(row_entries)
                 
                 tables[table_name] = entries
-                print(f"Table '{table_name}' created: {rows}x{cols}")
+                color_print(f"Table '{table_name}' created: {rows}x{cols}", Colors.GREEN)
             except Exception as e:
-                print(f"Table error: {e}")
+                color_print(f"Table error: {e}", Colors.RED)
             
         elif b[0] == "box":
             try:
@@ -151,26 +194,26 @@ while True:
                 
                 if mode == "r":
                     with open(filename, "r", encoding="utf-8") as f:
-                        print(f.read())
+                        color_print(f.read(), Colors.GREEN)
                 elif mode == "w":
                     with open(filename, "w", encoding="utf-8") as f:
                         f.write(content)
-                    print(f"File '{filename}' written!")
+                    color_print(f"File '{filename}' written!", Colors.GREEN)
                 elif mode == "a":
                     with open(filename, "a", encoding="utf-8") as f:
                         f.write(content + "\n")
-                    print(f"File '{filename}' appended!")
+                    color_print(f"File '{filename}' appended!", Colors.GREEN)
                 elif mode == "w+":
                     with open(filename, "w+", encoding="utf-8") as f:
                         f.write(content)
                         f.seek(0)
-                        print(f.read())
+                        color_print(f.read(), Colors.GREEN)
                 else:
-                    print(f"Error: Unknown mode '{mode}'")
+                    color_print(f"Error: Unknown mode '{mode}'", Colors.RED)
             except FileNotFoundError:
-                print(f"Error: File '{b[1]}' not found!")
+                color_print(f"Error: File '{b[1]}' not found!", Colors.RED)
             except Exception as e:
-                print(f"File error: {e}")
+                color_print(f"File error: {e}", Colors.RED)
             
         elif b[0] == "msg":
             messagebox.showinfo(b[1], b[2])
@@ -184,6 +227,7 @@ while True:
         elif b[0] == "open":
             path = r"C:\Program Files\Google\Chrome\Application\chrome.exe " + b[1]
             subprocess.Popen([path])
+            color_print(f"Opening: {b[1]}", Colors.GREEN)
             
         elif b[0] == "command" and b[1] == "open":
             def opens():
@@ -211,7 +255,7 @@ while True:
                 label.place(x=int(b[3]), y=int(b[4]))
                 label.image = photo
             except Exception as e:
-                print(f"Picture error: {e}")
+                color_print(f"Picture error: {e}", Colors.RED)
 
         elif b[0] == "Gui" and b[1] == "canvas":
             parent = windows.get(b[2], win)
@@ -265,7 +309,7 @@ while True:
                 pygame.mixer.music.load(b[2])
                 pygame.mixer.music.play(int(b[3]))
             except Exception as e:
-                print(f"Audio error: {e}")
+                color_print(f"Audio error: {e}", Colors.RED)
 
         elif b[0] == "command" and b[1] == "net":
             webbrowser.open(b[2])
@@ -277,7 +321,7 @@ while True:
                     pygame.mixer.music.load(b[3])
                     pygame.mixer.music.play(int(b[4]))
                 except Exception as e:
-                    print(f"Audio error: {e}")
+                    color_print(f"Audio error: {e}", Colors.RED)
             btn = tk.Button(win, text=b[5], command=audio, bg=b[4])
             btn.place(x=int(b[6]), y=int(b[7]))
 
@@ -314,9 +358,8 @@ while True:
         elif b[0] == "export" and b[1] == "exe":
             try:
                 name = b[2] if len(b) > 2 else "PWR_App"
-                print(f"Building {name}.exe...")
+                color_print(f"Building {name}.exe...", Colors.YELLOW)
                 
-                # Создаем иконку
                 create_icon()
                 
                 with open("_build.py", "w") as f:
@@ -330,7 +373,6 @@ try:
 except ImportError:
     subprocess.run([sys.executable, "-m", "pip", "install", "pyinstaller"])
 
-# Проверяем наличие icon.ico
 if not os.path.exists("icon.ico"):
     print("ERROR: icon.ico not found!")
     sys.exit(1)
@@ -358,9 +400,10 @@ if os.path.exists(f"dist/{{name}}.exe"):
                 
                 subprocess.run(["python", "_build.py"])
                 os.remove("_build.py")
+                color_print(f"✓ {name}.exe built successfully!", Colors.GREEN)
                 
             except Exception as e:
-                print(f"Error: {e}")
+                color_print(f"Error: {e}", Colors.RED)
 
         elif b[0] == "export":
             try:
@@ -376,9 +419,9 @@ if os.path.exists(f"dist/{{name}}.exe"):
                     f.write("TABLES:" + str(table_data) + "\n")
                     for cmd in history:
                         f.write(cmd + "\n")
-                print(f"File {b[1]}.pwr saved!")
+                color_print(f"File {b[1]}.pwr saved!", Colors.GREEN)
             except Exception as e:
-                print(f"Export error: {e}")
+                color_print(f"Export error: {e}", Colors.RED)
 
         elif b[0] == "import":
             try:
@@ -410,9 +453,9 @@ if os.path.exists(f"dist/{{name}}.exe"):
                                         entries.append(row_entries)
                                     
                                     tables[table_name] = entries
-                                    print(f"Table '{table_name}' created: {rows}x{cols}")
+                                    color_print(f"Table '{table_name}' created: {rows}x{cols}", Colors.GREEN)
                                 except Exception as e:
-                                    print(f"Table error: {e}")
+                                    color_print(f"Table error: {e}", Colors.RED)
                             elif b2[0] == "rename":
                                 parent = windows.get(b2[1], win)
                                 parent.title(b2[2])
@@ -429,7 +472,7 @@ if os.path.exists(f"dist/{{name}}.exe"):
                                     label.place(x=int(b2[3]), y=int(b2[4]))
                                     label.image = photo
                                 except Exception as e:
-                                    print(f"Picture error: {e}")
+                                    color_print(f"Picture error: {e}", Colors.RED)
                             elif b2[0] == "Gui" and b2[1] == "canvas":
                                 parent = windows.get(b2[2], win)
                                 canvas = tk.Canvas(parent, width=int(b2[3]), height=int(b2[4]), bg=b2[5])
@@ -462,7 +505,7 @@ if os.path.exists(f"dist/{{name}}.exe"):
                                     pygame.mixer.music.load(b2[2])
                                     pygame.mixer.music.play(int(b2[3]))
                                 except Exception as e:
-                                    print(f"Audio error: {e}")
+                                    color_print(f"Audio error: {e}", Colors.RED)
                             elif b2[0] == "command" and b2[1] == "net":
                                 webbrowser.open(b2[2])
                             elif b2[0] == "command" and b2[1] == "button" and b2[2] == "audio":
@@ -472,7 +515,7 @@ if os.path.exists(f"dist/{{name}}.exe"):
                                         pygame.mixer.music.load(b2[3])
                                         pygame.mixer.music.play(int(b2[4]))
                                     except Exception as e:
-                                        print(f"Audio error: {e}")
+                                        color_print(f"Audio error: {e}", Colors.RED)
                                 btn = tk.Button(win, text=b2[5], command=audio, bg=b2[4])
                                 btn.place(x=int(b2[6]), y=int(b2[7]))
                             elif b2[0] == "command" and b2[1] == "button" and b2[2] == "text":
@@ -529,26 +572,26 @@ if os.path.exists(f"dist/{{name}}.exe"):
                                     
                                     if mode == "r":
                                         with open(filename, "r", encoding="utf-8") as f:
-                                            print(f.read())
+                                            color_print(f.read(), Colors.GREEN)
                                     elif mode == "w":
                                         with open(filename, "w", encoding="utf-8") as f:
                                             f.write(content)
-                                        print(f"File '{filename}' written!")
+                                        color_print(f"File '{filename}' written!", Colors.GREEN)
                                     elif mode == "a":
                                         with open(filename, "a", encoding="utf-8") as f:
                                             f.write(content + "\n")
-                                        print(f"File '{filename}' appended!")
+                                        color_print(f"File '{filename}' appended!", Colors.GREEN)
                                     elif mode == "w+":
                                         with open(filename, "w+", encoding="utf-8") as f:
                                             f.write(content)
                                             f.seek(0)
-                                            print(f.read())
+                                            color_print(f.read(), Colors.GREEN)
                                     else:
-                                        print(f"Error: Unknown mode '{mode}'")
+                                        color_print(f"Error: Unknown mode '{mode}'", Colors.RED)
                                 except FileNotFoundError:
-                                    print(f"Error: File '{b2[1]}' not found!")
+                                    color_print(f"Error: File '{b2[1]}' not found!", Colors.RED)
                                 except Exception as e:
-                                    print(f"File error: {e}")
+                                    color_print(f"File error: {e}", Colors.RED)
                             elif b2[0] == "color":
                                 parent = windows.get(b2[1], win)
                                 parent.configure(bg=b2[2])
@@ -556,16 +599,16 @@ if os.path.exists(f"dist/{{name}}.exe"):
                             elif b2[0] == "console" and b2[1] == "random":
                                 try:
                                     num = random.randint(int(b2[2]), int(b2[3]))
-                                    print(f"Random number: {num}")
+                                    color_print(f"Random number: {num}", Colors.GREEN)
                                 except Exception as e:
-                                    print(f"Random error: {e}")
+                                    color_print(f"Random error: {e}", Colors.RED)
                             elif b2[0] == "console" and b2[1] == "randombox":
                                 try:
                                     items = b2[2:]
                                     choice = random.choice(items)
-                                    print(f"Random choice: {choice}")
+                                    color_print(f"Random choice: {choice}", Colors.GREEN)
                                 except Exception as e:
-                                    print(f"Randombox error: {e}")
+                                    color_print(f"Randombox error: {e}", Colors.RED)
                     
                     # Потом восстанавливаем данные таблиц
                     for line in lines:
@@ -580,20 +623,21 @@ if os.path.exists(f"dist/{{name}}.exe"):
                                                 if j < len(entries[i]):
                                                     entries[i][j].delete(0, tk.END)
                                                     entries[i][j].insert(0, str(value))
-                            print("Tables restored!")
+                            color_print("Tables restored!", Colors.GREEN)
                             
             except FileNotFoundError:
-                print(f"File {b[1]} not found!")
+                color_print(f"File {b[1]} not found!", Colors.RED)
             except Exception as e:
-                print(f"Import error: {e}")
+                color_print(f"Import error: {e}", Colors.RED)
 
         if b[0] not in ["export", "import"]:
             history.append(a)
 
     except Exception as e:
-        print(f"Error: {e}")
+        color_print(f"Error: {e}", Colors.RED)
     else:
         if b[0] not in ["root", "rename", "geometry", "picture", "Gui", "canvas", "msg", "command", "get", "color", "export", "import", "copy", "open", "box", "table", "console", "#"]:
-            print(b, "error !", "did you mean>>", random.choice(boxGui))
+            error_msg = f"{b} error ! did you mean>> {random.choice(boxGui)}"
+            color_print(error_msg, Colors.RED)
 
 tk.mainloop()
