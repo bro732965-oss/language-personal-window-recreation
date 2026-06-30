@@ -102,7 +102,7 @@ while True:
                     for cmd in commands:
                         cmd = cmd.strip()
                         if cmd:
-                            b2 = cmd.split(".")
+                            b2 = cmd.split("::")
                             if cmd == "root()":
                                 root=tk.Toplevel(win)
                                 windows["root"] = root
