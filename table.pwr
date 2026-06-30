@@ -1,0 +1,7 @@
+root()
+rename::win::Table
+geometry::win::600::400
+color::win::lightgray
+msg::box::win::Data Table::250::20
+table::3::3::my_table::win
+msg::box::win::Enter data in the table::200::350
