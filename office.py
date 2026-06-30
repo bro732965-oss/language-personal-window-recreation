@@ -30,6 +30,7 @@ boxGui = [
     "GET TEXT:get::text::win::100::100::Hello",
     "CANVAS:command::canvas::win::300::200::white::Create::lightblue::100::100",
     "EXPORT:export::myproject",
+    "EXPORT EXE:export::exe::MyApp",
     "IMPORT:import::myproject.pwr",
     "BOX WRITE:box::data.txt::w::Hello World",
     "BOX APPEND:box::data.txt::a::New line",
@@ -54,6 +55,42 @@ windows = {"win": win}
 canvases = {}
 tables = {}
 history = []
+
+# Функция для создания иконки из вашего рисунка
+def create_icon():
+    try:
+        from PIL import Image, ImageDraw
+        
+        # Создаем изображение 256x256
+        img = Image.new('RGB', (256, 256), '#F5F5DC')
+        draw = ImageDraw.Draw(img)
+        
+        # Ваша мозаика 3x3
+        colors = ['#FF4444', '#4488FF', '#44CC44', '#FFCC00', '#AA44FF', '#FF8800', '#FF66AA', '#00CCFF', '#CC3366']
+        x_positions = [0, 85, 170]
+        y_positions = [0, 85, 170]
+        size = 85
+        
+        for i, color in enumerate(colors):
+            x = x_positions[i % 3]
+            y = y_positions[i // 3]
+            draw.rectangle([x, y, x+size, y+size], fill=color, outline='#333333', width=3)
+        
+        # Рисуем линии-швы
+        draw.line([0, 85, 256, 85], fill='#333333', width=3)
+        draw.line([0, 170, 256, 170], fill='#333333', width=3)
+        draw.line([85, 0, 85, 170], fill='#333333', width=3)
+        draw.line([170, 0, 170, 170], fill='#333333', width=3)
+        draw.line([85, 85, 85, 256], fill='#333333', width=3)
+        draw.line([170, 85, 170, 256], fill='#333333', width=3)
+        
+        # Сохраняем как ICO
+        img.save('icon.ico', format='ICO', sizes=[(256, 256)])
+        print("✓ Icon created: icon.ico")
+        return True
+    except Exception as e:
+        print(f"Icon error: {e}")
+        return False
 
 while True:
     try:
@@ -82,7 +119,7 @@ while True:
         elif b[0] == "copy":
             os.system('echo ' + b[1] + ' | termux-clipboard-set')
             
-        elif b[0] == "#":
+        elif b[0] == "/":
             print(b[1])
             
         elif b[0] == "table":
@@ -264,7 +301,7 @@ while True:
 
             def git(ent=entry, text=b[5], par=parent, x=b[3], y=b[4]):
                 if ent.get() == text:
-                    label = tk.Label(par, text="Correct")
+                    label = tk.Label(par, text=b[5])
                     label.place(x=int(x), y=int(y) )
 
             btn = tk.Button(parent, text="Check", command=git,width=10, height=0)
@@ -273,6 +310,57 @@ while True:
         elif b[0] == "color":
             parent = windows.get(b[1], win)
             parent.configure(bg=b[2])
+
+        elif b[0] == "export" and b[1] == "exe":
+            try:
+                name = b[2] if len(b) > 2 else "PWR_App"
+                print(f"Building {name}.exe...")
+                
+                # Создаем иконку
+                create_icon()
+                
+                with open("_build.py", "w") as f:
+                    f.write(f'''
+import os
+import sys
+import subprocess
+
+try:
+    import PyInstaller
+except ImportError:
+    subprocess.run([sys.executable, "-m", "pip", "install", "pyinstaller"])
+
+# Проверяем наличие icon.ico
+if not os.path.exists("icon.ico"):
+    print("ERROR: icon.ico not found!")
+    sys.exit(1)
+
+cmd = [sys.executable, "-m", "PyInstaller", 
+       "--onefile", 
+       "--name", "{name}", 
+       "--icon", "icon.ico",
+       "--console", 
+       "--clean", 
+       "--noconfirm", 
+       "pwr.py"]
+
+for file in ["logo.png", "music.mp3"]:
+    if os.path.exists(file):
+        cmd.extend(["--add-data", f"{{file}};."])
+
+subprocess.run(cmd, check=True)
+
+if os.path.exists(f"dist/{{name}}.exe"):
+    import shutil
+    shutil.copy(f"dist/{{name}}.exe", f"{{name}}.exe")
+    print(f"✓ Done: {{name}}.exe with icon!")
+''')
+                
+                subprocess.run(["python", "_build.py"])
+                os.remove("_build.py")
+                
+            except Exception as e:
+                print(f"Error: {e}")
 
         elif b[0] == "export":
             try:
@@ -429,7 +517,7 @@ while True:
                                 entry.place(x=int(b2[3]), y=int(b2[4]))
                                 def git(ent=entry, text=b2[5], par=parent, x=b2[3], y=b2[4]):
                                     if ent.get() == text:
-                                        label = tk.Label(par, text="Correct")
+                                        label = tk.Label(par, text=b2[5])
                                         label.place(x=int(x), y=int(y) + 30)
                                 btn = tk.Button(parent, text="Check", command=git)
                                 btn.place(x=int(b2[3]), y=int(b2[4]) + 30)
@@ -465,7 +553,6 @@ while True:
                                 parent = windows.get(b2[1], win)
                                 parent.configure(bg=b2[2])
                             
-                            # Добавляем console в import
                             elif b2[0] == "console" and b2[1] == "random":
                                 try:
                                     num = random.randint(int(b2[2]), int(b2[3]))
