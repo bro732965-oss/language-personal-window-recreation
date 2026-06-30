@@ -7,6 +7,7 @@ import os
 import subprocess
 from tkinter import messagebox
 import ast
+import time
 
 # ========== ЦВЕТА ДЛЯ КОНСОЛИ ==========
 class Colors:
@@ -21,31 +22,24 @@ class Colors:
     END = '\033[0m'
 
 def color_print(text, color=Colors.WHITE, bold=False):
-    """Вывод цветного текста в консоль"""
     if bold:
         print(f"{Colors.BOLD}{color}{text}{Colors.END}")
     else:
         print(f"{color}{text}{Colors.END}")
 
 def highlight_command(cmd):
-    """Подсветка команды"""
     cmd_parts = cmd.split("::")
     highlighted = []
     
     for part in cmd_parts:
-        # Команды (синие)
-        if part in ["root", "rename", "color", "msg", "box", "console", "export", "import", "table", "copy", "open", "command", "Gui", "canvas", "get"]:
+        if part in ["root", "rename", "color", "msg", "box", "console", "export", "import", "table", "copy", "open", "command", "Gui", "canvas", "get", "time"]:
             highlighted.append(f"{Colors.BLUE}{part}{Colors.END}")
-        # Числа (зелёные)
         elif part.isdigit():
             highlighted.append(f"{Colors.GREEN}{part}{Colors.END}")
-        # Пути и файлы (жёлтые)
         elif "." in part or "/" in part or "\\" in part:
             highlighted.append(f"{Colors.YELLOW}{part}{Colors.END}")
-        # Комментарии (серые)
         elif part.startswith("#") or part.startswith("/"):
             highlighted.append(f"{Colors.WHITE}{part}{Colors.END}")
-        # Параметры (пурпурные)
         else:
             highlighted.append(f"{Colors.PURPLE}{part}{Colors.END}")
     
@@ -83,7 +77,8 @@ boxGui = [
     "COMMENT:#::This is a comment",
     "TABLE:table::3::3::my_table::win",
     "RANDOM:console::random::1::10",
-    "RANDOMBOX:console::randombox::apple::banana::cherry"
+    "RANDOMBOX:console::randombox::apple::banana::cherry",
+    "TIME:time::5::+::msg::Title::Text"
 ]
 
 print("""
@@ -99,7 +94,6 @@ canvases = {}
 tables = {}
 history = []
 
-# Функция для создания иконки из вашего рисунка
 def create_icon():
     try:
         from PIL import Image, ImageDraw
@@ -125,7 +119,7 @@ def create_icon():
         draw.line([170, 85, 170, 256], fill='#333333', width=3)
         
         img.save('icon.ico', format='ICO', sizes=[(256, 256)])
-        color_print("✓ Icon created: icon.ico", Colors.GREEN)
+        color_print("Icon created: icon.ico", Colors.GREEN)
         return True
     except Exception as e:
         color_print(f"Icon error: {e}", Colors.RED)
@@ -136,13 +130,40 @@ while True:
         a = input("* ")
         b = a.split("::")
         
-        # Подсветка введённой команды
-        color_print(f"→ {highlight_command(a)}", Colors.CYAN)
+        color_print(f"-> {highlight_command(a)}", Colors.CYAN)
 
         if a == "root()":
             root = tk.Toplevel(win)
             windows["root"] = root
             
+        # ========== ТАЙМЕР ==========
+        elif b[0] == "time" and len(b) >= 6:
+            try:
+                if b[3] == "+":
+                    seconds = int(b[1]) + int(b[2])
+                    if seconds > 0:
+                        color_print(f"Waiting {seconds} seconds...", Colors.YELLOW)
+                        time.sleep(seconds)
+                        messagebox.showinfo(b[5], b[6])
+                        color_print("Message shown", Colors.GREEN)
+                    else:
+                        color_print("Time must be positive", Colors.RED)
+                elif b[3] == "-":
+                    seconds = int(b[1]) - int(b[2])
+                    if seconds > 0:
+                        color_print(f"Waiting {seconds} seconds...", Colors.YELLOW)
+                        time.sleep(seconds)
+                        messagebox.showinfo(b[5], b[6])
+                        color_print("Message shown", Colors.GREEN)
+                    else:
+                        color_print("Time must be positive", Colors.RED)
+                else:
+                    color_print("Use + or - for time operation", Colors.RED)
+            except ValueError:
+                color_print("Time values must be numbers", Colors.RED)
+            except Exception as e:
+                color_print(f"Time error: {e}", Colors.RED)
+        
         elif b[0] == "console" and b[1] == "random":
             try:
                 num = random.randint(int(b[2]), int(b[3]))
@@ -198,20 +219,20 @@ while True:
                 elif mode == "w":
                     with open(filename, "w", encoding="utf-8") as f:
                         f.write(content)
-                    color_print(f"File '{filename}' written!", Colors.GREEN)
+                    color_print(f"File '{filename}' written", Colors.GREEN)
                 elif mode == "a":
                     with open(filename, "a", encoding="utf-8") as f:
                         f.write(content + "\n")
-                    color_print(f"File '{filename}' appended!", Colors.GREEN)
+                    color_print(f"File '{filename}' appended", Colors.GREEN)
                 elif mode == "w+":
                     with open(filename, "w+", encoding="utf-8") as f:
                         f.write(content)
                         f.seek(0)
                         color_print(f.read(), Colors.GREEN)
                 else:
-                    color_print(f"Error: Unknown mode '{mode}'", Colors.RED)
+                    color_print(f"Unknown mode '{mode}'", Colors.RED)
             except FileNotFoundError:
-                color_print(f"Error: File '{b[1]}' not found!", Colors.RED)
+                color_print(f"File '{b[1]}' not found", Colors.RED)
             except Exception as e:
                 color_print(f"File error: {e}", Colors.RED)
             
@@ -395,12 +416,12 @@ subprocess.run(cmd, check=True)
 if os.path.exists(f"dist/{{name}}.exe"):
     import shutil
     shutil.copy(f"dist/{{name}}.exe", f"{{name}}.exe")
-    print(f"✓ Done: {{name}}.exe with icon!")
+    print(f"Done: {name}.exe with icon")
 ''')
                 
                 subprocess.run(["python", "_build.py"])
                 os.remove("_build.py")
-                color_print(f"✓ {name}.exe built successfully!", Colors.GREEN)
+                color_print(f"{name}.exe built successfully", Colors.GREEN)
                 
             except Exception as e:
                 color_print(f"Error: {e}", Colors.RED)
@@ -419,7 +440,7 @@ if os.path.exists(f"dist/{{name}}.exe"):
                     f.write("TABLES:" + str(table_data) + "\n")
                     for cmd in history:
                         f.write(cmd + "\n")
-                color_print(f"File {b[1]}.pwr saved!", Colors.GREEN)
+                color_print(f"File {b[1]}.pwr saved", Colors.GREEN)
             except Exception as e:
                 color_print(f"Export error: {e}", Colors.RED)
 
@@ -428,7 +449,6 @@ if os.path.exists(f"dist/{{name}}.exe"):
                 with open(b[1], "r", encoding="utf-8") as f:
                     lines = f.readlines()
                     
-                    # Сначала выполняем все команды
                     for cmd in lines:
                         cmd = cmd.strip()
                         if cmd and not cmd.startswith("TABLES:"):
@@ -456,6 +476,20 @@ if os.path.exists(f"dist/{{name}}.exe"):
                                     color_print(f"Table '{table_name}' created: {rows}x{cols}", Colors.GREEN)
                                 except Exception as e:
                                     color_print(f"Table error: {e}", Colors.RED)
+                            elif b2[0] == "time" and len(b2) >= 6:
+                                try:
+                                    if b2[3] == "+":
+                                        seconds = int(b2[1]) + int(b2[2])
+                                        if seconds > 0:
+                                            time.sleep(seconds)
+                                            messagebox.showinfo(b2[5], b2[6])
+                                    elif b2[3] == "-":
+                                        seconds = int(b2[1]) - int(b2[2])
+                                        if seconds > 0:
+                                            time.sleep(seconds)
+                                            messagebox.showinfo(b2[5], b2[6])
+                                except:
+                                    pass
                             elif b2[0] == "rename":
                                 parent = windows.get(b2[1], win)
                                 parent.title(b2[2])
@@ -576,20 +610,20 @@ if os.path.exists(f"dist/{{name}}.exe"):
                                     elif mode == "w":
                                         with open(filename, "w", encoding="utf-8") as f:
                                             f.write(content)
-                                        color_print(f"File '{filename}' written!", Colors.GREEN)
+                                        color_print(f"File '{filename}' written", Colors.GREEN)
                                     elif mode == "a":
                                         with open(filename, "a", encoding="utf-8") as f:
                                             f.write(content + "\n")
-                                        color_print(f"File '{filename}' appended!", Colors.GREEN)
+                                        color_print(f"File '{filename}' appended", Colors.GREEN)
                                     elif mode == "w+":
                                         with open(filename, "w+", encoding="utf-8") as f:
                                             f.write(content)
                                             f.seek(0)
                                             color_print(f.read(), Colors.GREEN)
                                     else:
-                                        color_print(f"Error: Unknown mode '{mode}'", Colors.RED)
+                                        color_print(f"Unknown mode '{mode}'", Colors.RED)
                                 except FileNotFoundError:
-                                    color_print(f"Error: File '{b2[1]}' not found!", Colors.RED)
+                                    color_print(f"File '{b2[1]}' not found", Colors.RED)
                                 except Exception as e:
                                     color_print(f"File error: {e}", Colors.RED)
                             elif b2[0] == "color":
@@ -610,7 +644,6 @@ if os.path.exists(f"dist/{{name}}.exe"):
                                 except Exception as e:
                                     color_print(f"Randombox error: {e}", Colors.RED)
                     
-                    # Потом восстанавливаем данные таблиц
                     for line in lines:
                         if line.startswith("TABLES:"):
                             table_data = ast.literal_eval(line[7:])
@@ -623,10 +656,10 @@ if os.path.exists(f"dist/{{name}}.exe"):
                                                 if j < len(entries[i]):
                                                     entries[i][j].delete(0, tk.END)
                                                     entries[i][j].insert(0, str(value))
-                            color_print("Tables restored!", Colors.GREEN)
+                            color_print("Tables restored", Colors.GREEN)
                             
             except FileNotFoundError:
-                color_print(f"File {b[1]} not found!", Colors.RED)
+                color_print(f"File {b[1]} not found", Colors.RED)
             except Exception as e:
                 color_print(f"Import error: {e}", Colors.RED)
 
@@ -636,7 +669,7 @@ if os.path.exists(f"dist/{{name}}.exe"):
     except Exception as e:
         color_print(f"Error: {e}", Colors.RED)
     else:
-        if b[0] not in ["root", "rename", "geometry", "picture", "Gui", "canvas", "msg", "command", "get", "color", "export", "import", "copy", "open", "box", "table", "console", "#"]:
+        if b[0] not in ["root", "rename", "geometry", "picture", "Gui", "canvas", "msg", "command", "get", "color", "export", "import", "copy", "open", "box", "table", "console", "#", "time"]:
             error_msg = f"{b} error ! did you mean>> {random.choice(boxGui)}"
             color_print(error_msg, Colors.RED)
 
