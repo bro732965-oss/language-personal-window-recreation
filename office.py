@@ -31,7 +31,9 @@ boxGui = [
     "CANVAS:command::canvas::win::300::200::white::Create::lightblue::100::100",
     "EXPORT:export::myproject",
     "IMPORT:import::myproject.pwr",
-    "BOX:box::data.txt::w+::Hello World",
+    "BOX WRITE:box::data.txt::w::Hello World",
+    "BOX APPEND:box::data.txt::a::New line",
+    "BOX READ:box::data.txt::r",
     "COPY:copy::Hello World",
     "OPEN:open::https://google.com",
     "COMMENT:#::This is a comment",
@@ -106,12 +108,30 @@ while True:
             
         elif b[0] == "box":
             try:
-                with open(b[1], b[2]) as f:
-                    if b[2] == "r":
-                        content = f.read()
-                        print(content)
-                    else:
-                        f.write(b[3])
+                mode = b[2]
+                filename = b[1]
+                content = b[3] if len(b) > 3 else ""
+                
+                if mode == "r":
+                    with open(filename, "r", encoding="utf-8") as f:
+                        print(f.read())
+                elif mode == "w":
+                    with open(filename, "w", encoding="utf-8") as f:
+                        f.write(content)
+                    print(f"File '{filename}' written!")
+                elif mode == "a":
+                    with open(filename, "a", encoding="utf-8") as f:
+                        f.write(content + "\n")
+                    print(f"File '{filename}' appended!")
+                elif mode == "w+":
+                    with open(filename, "w+", encoding="utf-8") as f:
+                        f.write(content)
+                        f.seek(0)
+                        print(f.read())
+                else:
+                    print(f"Error: Unknown mode '{mode}'")
+            except FileNotFoundError:
+                print(f"Error: File '{b[1]}' not found!")
             except Exception as e:
                 print(f"File error: {e}")
             
@@ -415,11 +435,30 @@ while True:
                                 btn.place(x=int(b2[3]), y=int(b2[4]) + 30)
                             elif b2[0] == "box":
                                 try:
-                                    with open(b2[1], b2[2]) as f:
-                                        if b2[2] == "r":
+                                    mode = b2[2]
+                                    filename = b2[1]
+                                    content = b2[3] if len(b2) > 3 else ""
+                                    
+                                    if mode == "r":
+                                        with open(filename, "r", encoding="utf-8") as f:
                                             print(f.read())
-                                        else:
-                                            f.write(b2[3])
+                                    elif mode == "w":
+                                        with open(filename, "w", encoding="utf-8") as f:
+                                            f.write(content)
+                                        print(f"File '{filename}' written!")
+                                    elif mode == "a":
+                                        with open(filename, "a", encoding="utf-8") as f:
+                                            f.write(content + "\n")
+                                        print(f"File '{filename}' appended!")
+                                    elif mode == "w+":
+                                        with open(filename, "w+", encoding="utf-8") as f:
+                                            f.write(content)
+                                            f.seek(0)
+                                            print(f.read())
+                                    else:
+                                        print(f"Error: Unknown mode '{mode}'")
+                                except FileNotFoundError:
+                                    print(f"Error: File '{b2[1]}' not found!")
                                 except Exception as e:
                                     print(f"File error: {e}")
                             elif b2[0] == "color":
@@ -467,7 +506,7 @@ while True:
     except Exception as e:
         print(f"Error: {e}")
     else:
-        if b[0] not in ["root", "rename", "geometry", "picture", "Gui", "canvas", "msg", "command", "get", "color", "export", "import"]:
+        if b[0] not in ["root", "rename", "geometry", "picture", "Gui", "canvas", "msg", "command", "get", "color", "export", "import", "copy", "open", "box", "table", "console", "#"]:
             print(b, "error !", "did you mean>>", random.choice(boxGui))
 
 tk.mainloop()
