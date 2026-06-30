@@ -18,7 +18,6 @@ It is written in **Python + Tkinter** and uses a simple syntax with no extra cod
 ### Features:
 - ✅ **Instant results** — one command = one action
 - ✅ **Simple syntax** — like an instruction in English
-- ✅ **Free** — always
 - ✅ **Works everywhere** — where Python runs
 - ✅ **Interactivity** — buttons, input fields, dialogs
 - ✅ **Graphics** — canvas, shapes, images
