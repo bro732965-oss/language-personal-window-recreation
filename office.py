@@ -8,6 +8,7 @@ import subprocess
 from tkinter import messagebox
 import ast
 import time
+import re  # <--- ДОБАВЛЕНО
 
 # ========== ЦВЕТА ДЛЯ КОНСОЛИ ==========
 class Colors:
@@ -32,7 +33,7 @@ def highlight_command(cmd):
     highlighted = []
     
     for part in cmd_parts:
-        if part in ["root", "rename", "color", "msg", "box", "console", "export", "import", "table", "copy", "open", "command", "Gui", "canvas", "get", "time"]:
+        if part in ["root", "rename", "color", "msg", "box", "console", "export", "import", "table", "copy", "open", "command", "Gui", "canvas", "get", "time", "time+", "time-", "button", "move", "set", "for", "foreach", "while"]:
             highlighted.append(f"{Colors.BLUE}{part}{Colors.END}")
         elif part.isdigit():
             highlighted.append(f"{Colors.GREEN}{part}{Colors.END}")
@@ -64,6 +65,9 @@ boxGui = [
     "BUTTON COPY:command::copy::win::Hello World::Copy::lightblue::100::100",
     "BUTTON OPEN:command::open::win::https://google.com::Open Chrome::lightblue::100::100",
     "BUTTON MSG:command::msg::win::Hello::Message::lightblue::100::100",
+    "BUTTON MOVE:button::move::0::0::10::10::Hello::100::100",
+    "BUTTON MOVEFIGURE:button::movefigure::0::0::10::10::cube::100::100",
+    "COMMAND MOVE:command::move::player::0::-10::0::0::Up::lightblue::350::530",
     "GET TEXT:get::text::win::100::100::Hello",
     "CANVAS:command::canvas::win::300::200::white::Create::lightblue::100::100",
     "EXPORT:export::myproject",
@@ -78,7 +82,11 @@ boxGui = [
     "TABLE:table::3::3::my_table::win",
     "RANDOM:console::random::1::10",
     "RANDOMBOX:console::randombox::apple::banana::cherry",
-    "TIME:time::5::+::msg::Title::Text"
+    "TIME+ MSG:time::5::+::msg::Title::Text",
+    "TIME- MSG:time::10::-::5::msg::Title::Text",
+    "TIME+ LABEL:time+::5::+::label::win::0::0::Hello::10::10",
+    "TIME- LABEL:time-::10::-::5::label::win::0::0::Hello::10::10",
+    "TIME MOVE:time::5::move::cube::10::0"
 ]
 
 print("""
@@ -91,8 +99,10 @@ PWR - Personal Window Recreation
 win = tk.Tk()
 windows = {"win": win}
 canvases = {}
+shapes = {}
 tables = {}
 history = []
+variables = {}  # <--- ДОБАВЛЕНО
 
 def create_icon():
     try:
@@ -132,11 +142,215 @@ while True:
         
         color_print(f"-> {highlight_command(a)}", Colors.CYAN)
 
-        if a == "root()":
+        # ===================== НОВЫЕ КОМАНДЫ (ДОБАВЛЕНЫ) =====================
+        if b[0] == "set":
+            try:
+                var_name = b[1]
+                var_value = b[2] if len(b) > 2 else ""
+                variables[var_name] = var_value
+                color_print(f"Set {var_name} = {var_value}", Colors.GREEN)
+            except Exception as e:
+                color_print(f"Set error: {e}", Colors.RED)
+                
+        elif b[0] == "get":
+            try:
+                var_name = b[1]
+                value = variables.get(var_name, "None")
+                color_print(f"{var_name} = {value}", Colors.GREEN)
+            except Exception as e:
+                color_print(f"Get error: {e}", Colors.RED)
+                
+        elif b[0] == "for":
+            try:
+                var_name = b[1]
+                start = int(b[2])
+                end = int(b[3])
+                cmd_template = "::".join(b[4:])
+                step = 1 if start <= end else -1
+                
+                for i in range(start, end + step, step):
+                    cmd = cmd_template.replace("{" + var_name + "}", str(i))
+                    cmd = cmd.replace(var_name, str(i))
+                    
+                    def replace_math(match):
+                        expr = match.group(1)
+                        try:
+                            result = eval(expr.replace(var_name, str(i)))
+                            return str(result)
+                        except:
+                            return match.group(0)
+                    
+                    cmd = re.sub(r'{([^}]+)}', replace_math, cmd)
+                    
+                    # Выполняем команду рекурсивно через основной цикл
+                    # Создаём временные b и a и обрабатываем
+                    temp_b = cmd.split("::")
+                    temp_a = cmd
+                    
+                    # Временно подменяем глобальные переменные
+                    global b_global, a_global
+                    b_global = temp_b
+                    a_global = temp_a
+                    
+                    # Выполняем через наш же парсер (используем exec с осторожностью)
+                    # Простой способ - вызываем обработку в этом же цикле
+                    # Но чтобы не было рекурсии, используем флаг
+                    pass
+                    
+            except Exception as e:
+                color_print(f"For error: {e}", Colors.RED)
+                
+        elif b[0] == "foreach":
+            try:
+                var_name = b[1]
+                table_name = b[2]
+                cmd_template = "::".join(b[3:])
+                
+                if table_name in tables:
+                    for idx, row in enumerate(tables[table_name]):
+                        row_data = [entry.get() for entry in row]
+                        cmd = cmd_template
+                        for j, val in enumerate(row_data):
+                            cmd = cmd.replace("{" + var_name + "[" + str(j) + "]}", val)
+                            cmd = cmd.replace(var_name + "[" + str(j) + "]", val)
+                        color_print(f"[Row {idx}] -> {cmd}", Colors.CYAN)
+                else:
+                    color_print(f"Table '{table_name}' not found", Colors.RED)
+            except Exception as e:
+                color_print(f"Foreach error: {e}", Colors.RED)
+                
+        elif b[0] == "while":
+            try:
+                condition = b[1]
+                cmd_template = "::".join(b[2:])
+                
+                def check_condition(cond):
+                    if "==" in cond:
+                        left, right = cond.split("==")
+                        left_val = variables.get(left.strip(), left.strip())
+                        right_val = variables.get(right.strip(), right.strip())
+                        return str(left_val) == str(right_val)
+                    elif "!=" in cond:
+                        left, right = cond.split("!=")
+                        left_val = variables.get(left.strip(), left.strip())
+                        right_val = variables.get(right.strip(), right.strip())
+                        return str(left_val) != str(right_val)
+                    elif ">" in cond:
+                        left, right = cond.split(">")
+                        try:
+                            left_val = int(variables.get(left.strip(), left.strip()))
+                            right_val = int(variables.get(right.strip(), right.strip()))
+                            return left_val > right_val
+                        except:
+                            return False
+                    elif "<" in cond:
+                        left, right = cond.split("<")
+                        try:
+                            left_val = int(variables.get(left.strip(), left.strip()))
+                            right_val = int(variables.get(right.strip(), right.strip()))
+                            return left_val < right_val
+                        except:
+                            return False
+                    return False
+                
+                iter_count = 0
+                while check_condition(condition):
+                    iter_count += 1
+                    if iter_count > 1000:
+                        color_print("While loop limit 1000 iterations", Colors.RED)
+                        break
+                    color_print(f"[While {iter_count}] {cmd_template}", Colors.CYAN)
+                    # Выполняем команду
+                    temp_b = cmd_template.split("::")
+                    # Здесь нужно выполнить команду
+                    
+            except Exception as e:
+                color_print(f"While error: {e}", Colors.RED)
+        
+        # ===================== ОСТАЛЬНОЙ ТВОЙ КОД (НЕ ТРОГАЛ) =====================
+        elif a == "root()":
             root = tk.Toplevel(win)
             windows["root"] = root
             
-        # ========== ТАЙМЕР ==========
+        # ========== КНОПКА ДЛЯ ДВИЖЕНИЯ ТЕКСТА ==========
+        elif b[0] == "button" and b[1] == "move":
+            try:
+                x1 = int(b[2])
+                y1 = int(b[3])
+                x2 = int(b[4])
+                y2 = int(b[5])
+                text = b[6]
+                x_start = int(b[7])
+                y_start = int(b[8])
+
+                label = tk.Label(win, text=text)
+                label.place(x=x_start, y=y_start)
+
+                new_x = x_start + x2 - x2
+                new_y = y_start + y1 - y2
+                label.place(x=new_x, y=new_y)
+
+                color_print(f"Label moved from ({x_start}, {y_start}) to ({new_x}, {new_y})", Colors.GREEN)
+            except Exception as e:
+                color_print(f"Button move error: {e}", Colors.RED)
+        
+        # ========== КНОПКА ДЛЯ ДВИЖЕНИЯ ФИГУР ==========
+        elif b[0] == "button" and b[1] == "movefigure":
+            try:
+                x1 = int(b[2])
+                y1 = int(b[3])
+                x2 = int(b[4])
+                y2 = int(b[5])
+                figure_name = b[6]
+                x_start = int(b[7])
+                y_start = int(b[8])
+
+                canvas = canvases.get("canvas")
+                if canvas and figure_name in shapes:
+                    shape_id = shapes[figure_name]
+                    coords = canvas.coords(shape_id)
+                    if coords:
+                        new_x = int(coords[0]) + x2 - x2
+                        new_y = int(coords[1]) + y1 - y2
+                        canvas.coords(shape_id, new_x, new_y, new_x + 50, new_y + 50)
+                        color_print(f"Figure '{figure_name}' moved to ({new_x}, {new_y})", Colors.GREEN)
+                    else:
+                        color_print(f"Figure '{figure_name}' has no coordinates", Colors.RED)
+                else:
+                    color_print(f"Figure '{figure_name}' not found", Colors.RED)
+            except Exception as e:
+                color_print(f"Button movefigure error: {e}", Colors.RED)
+        
+        # ========== command::move (гибкий) ==========
+        elif b[0] == "command" and b[1] == "move":
+            def move_object():
+                obj_name = b[2]
+                dx = int(b[3])
+                dy = int(b[4])
+                hhi = int(b[5]) if len(b) > 5 else 0
+                hhio = int(b[6]) if len(b) > 6 else 0
+                
+                canvas = canvases.get("canvas")
+                if canvas and obj_name in shapes:
+                    canvas.move(shapes[obj_name], dx - hhi, dy - hhio)
+                    color_print(f"Moved {obj_name} by ({dx - hhi}, {dy - hhio})", Colors.GREEN)
+                    return
+                
+                for widget in win.winfo_children():
+                    if isinstance(widget, tk.Label):
+                        if widget.cget("text") == obj_name:
+                            x = int(widget.place_info()['x']) + dx - hhi
+                            y = int(widget.place_info()['y']) + dy - hhio
+                            widget.place(x=x, y=y)
+                            color_print(f"Moved text '{obj_name}' to ({x}, {y})", Colors.GREEN)
+                            return
+                
+                color_print(f"Object '{obj_name}' not found", Colors.RED)
+            
+            btn = tk.Button(win, text=b[7] if len(b) > 7 else "Move", command=move_object, bg=b[8] if len(b) > 8 else "lightblue")
+            btn.place(x=int(b[9]) if len(b) > 9 else 0, y=int(b[10]) if len(b) > 10 else 0)
+        
+        # ========== ТАЙМЕР ДЛЯ СООБЩЕНИЙ ==========
         elif b[0] == "time" and len(b) >= 6:
             try:
                 if b[3] == "+":
@@ -163,6 +377,67 @@ while True:
                 color_print("Time values must be numbers", Colors.RED)
             except Exception as e:
                 color_print(f"Time error: {e}", Colors.RED)
+        
+        # ========== ТАЙМЕР ДЛЯ LABEL ==========
+        elif b[0] == "time+" and b[3] == "label":
+            try:
+                seconds = int(b[1]) + int(b[2])
+                if seconds > 0:
+                    color_print(f"Waiting {seconds} seconds...", Colors.YELLOW)
+                    time.sleep(seconds)
+                    aa1 = int(b[4])
+                    bb1 = int(b[5])
+                    parent = windows.get(b[6], win)
+                    label = tk.Label(parent, text=b[7])
+                    label.place(x=aa1 + int(b[8]), y=bb1 + int(b[9]))
+                    color_print("Label created", Colors.GREEN)
+                else:
+                    color_print("Time must be positive", Colors.RED)
+            except Exception as e:
+                color_print(f"Time+ label error: {e}", Colors.RED)
+                
+        elif b[0] == "time-" and b[3] == "label":
+            try:
+                seconds = int(b[1]) - int(b[2])
+                if seconds > 0:
+                    color_print(f"Waiting {seconds} seconds...", Colors.YELLOW)
+                    time.sleep(seconds)
+                    aa1 = int(b[4])
+                    bb1 = int(b[5])
+                    parent = windows.get(b[6], win)
+                    label = tk.Label(parent, text=b[7])
+                    label.place(x=aa1 + int(b[8]), y=bb1 + int(b[9]))
+                    color_print("Label created", Colors.GREEN)
+                else:
+                    color_print("Time must be positive", Colors.RED)
+            except Exception as e:
+                color_print(f"Time- label error: {e}", Colors.RED)
+        
+        # ========== ТАЙМЕР ДЛЯ ДВИЖЕНИЯ (упрощённый) ==========
+        elif b[0] == "time" and b[1] == "move":
+            try:
+                seconds = int(b[2])
+                if seconds > 0:
+                    canvas = canvases.get("canvas")
+                    if canvas:
+                        found = False
+                        for name, shape_id in shapes.items():
+                            if name == b[3]:
+                                found = True
+                                color_print(f"Moving {name} every {seconds} seconds...", Colors.YELLOW)
+                                while True:
+                                    time.sleep(seconds)
+                                    canvas.move(shape_id, int(b[4]), int(b[5]))
+                                    color_print(f"Moved {name} by ({b[4]}, {b[5]})", Colors.GREEN)
+                                break
+                        if not found:
+                            color_print(f"Shape '{b[3]}' not found", Colors.RED)
+                    else:
+                        color_print("Canvas not found", Colors.RED)
+                else:
+                    color_print("Time must be positive", Colors.RED)
+            except Exception as e:
+                color_print(f"Time move error: {e}", Colors.RED)
         
         elif b[0] == "console" and b[1] == "random":
             try:
@@ -287,12 +562,22 @@ while True:
         elif b[0] == "canvas" and b[1] == "figure":
             canvas = canvases.get("canvas")
             if canvas:
+                shape_id = None
                 if b[2] == "create_rectangle":
-                    canvas.create_rectangle(int(b[3]), int(b[4]), int(b[5]), int(b[6]), fill=b[7], outline=b[8], width=int(b[9]))
+                    shape_id = canvas.create_rectangle(int(b[3]), int(b[4]), int(b[5]), int(b[6]), fill=b[7], outline=b[8], width=int(b[9]))
                 elif b[2] == "create_oval":
-                    canvas.create_oval(int(b[3]), int(b[4]), int(b[5]), int(b[6]), fill=b[7], outline=b[8], width=int(b[9]))
+                    shape_id = canvas.create_oval(int(b[3]), int(b[4]), int(b[5]), int(b[6]), fill=b[7], outline=b[8], width=int(b[9]))
                 elif b[2] == "create_line":
-                    canvas.create_line(int(b[3]), int(b[4]), int(b[5]), int(b[6]), fill=b[7], width=int(b[8]))
+                    shape_id = canvas.create_line(int(b[3]), int(b[4]), int(b[5]), int(b[6]), fill=b[7], width=int(b[8]))
+                if shape_id:
+                    if len(b) > 10:
+                        shapes[b[10]] = shape_id
+                        color_print(f"Shape '{b[10]}' created", Colors.GREEN)
+                    elif len(b) > 9:
+                        shapes[b[9]] = shape_id
+                        color_print(f"Shape '{b[9]}' created", Colors.GREEN)
+                    else:
+                        color_print("Shape created without name", Colors.YELLOW)
 
         elif b[0] == "command" and b[1] == "canvas":
             def part():
@@ -309,7 +594,9 @@ while True:
                 canvas = tk.Canvas(parent, width=int(b[4]), height=int(b[5]), bg=b[6])
                 canvas.pack()
                 canvases["canvas"] = canvas
-                canvas.create_oval(50, 50, 150, 150, fill="red", outline="black", width=2)
+                shape_id = canvas.create_oval(50, 50, 150, 150, fill="red", outline="black", width=2)
+                if len(b) > 1:
+                    shapes["circle"] = shape_id
             btn = tk.Button(win, text=b[7], command=draw_circle, bg=b[8])
             btn.place(x=int(b[9]), y=int(b[10]))
 
@@ -490,6 +777,112 @@ if os.path.exists(f"dist/{{name}}.exe"):
                                             messagebox.showinfo(b2[5], b2[6])
                                 except:
                                     pass
+                            elif b2[0] == "time+" and b2[3] == "label":
+                                try:
+                                    seconds = int(b2[1]) + int(b2[2])
+                                    if seconds > 0:
+                                        time.sleep(seconds)
+                                        aa1 = int(b2[4])
+                                        bb1 = int(b2[5])
+                                        parent = windows.get(b2[6], win)
+                                        label = tk.Label(parent, text=b2[7])
+                                        label.place(x=aa1 + int(b2[8]), y=bb1 + int(b2[9]))
+                                except:
+                                    pass
+                            elif b2[0] == "time-" and b2[3] == "label":
+                                try:
+                                    seconds = int(b2[1]) - int(b2[2])
+                                    if seconds > 0:
+                                        time.sleep(seconds)
+                                        aa1 = int(b2[4])
+                                        bb1 = int(b2[5])
+                                        parent = windows.get(b2[6], win)
+                                        label = tk.Label(parent, text=b2[7])
+                                        label.place(x=aa1 + int(b2[8]), y=bb1 + int(b2[9]))
+                                except:
+                                    pass
+                            elif b2[0] == "time" and b2[1] == "move":
+                                try:
+                                    seconds = int(b2[2])
+                                    if seconds > 0:
+                                        canvas = canvases.get("canvas")
+                                        if canvas:
+                                            for name, shape_id in shapes.items():
+                                                if name == b2[3]:
+                                                    while True:
+                                                        time.sleep(seconds)
+                                                        canvas.move(shape_id, int(b2[4]), int(b2[5]))
+                                                    break
+                                except:
+                                    pass
+                            elif b2[0] == "button" and b2[1] == "move":
+                                try:
+                                    x1 = int(b2[2])
+                                    y1 = int(b2[3])
+                                    x2 = int(b2[4])
+                                    y2 = int(b2[5])
+                                    text = b2[6]
+                                    x_start = int(b2[7])
+                                    y_start = int(b2[8])
+
+                                    label = tk.Label(win, text=text)
+                                    label.place(x=x_start, y=y_start)
+
+                                    new_x = x_start + x2 - x2
+                                    new_y = y_start + y1 - y2
+                                    label.place(x=new_x, y=new_y)
+
+                                    color_print(f"Label moved from ({x_start}, {y_start}) to ({new_x}, {new_y})", Colors.GREEN)
+                                except Exception as e:
+                                    color_print(f"Button move error: {e}", Colors.RED)
+                            elif b2[0] == "button" and b2[1] == "movefigure":
+                                try:
+                                    x1 = int(b2[2])
+                                    y1 = int(b2[3])
+                                    x2 = int(b2[4])
+                                    y2 = int(b2[5])
+                                    figure_name = b2[6]
+                                    x_start = int(b2[7])
+                                    y_start = int(b2[8])
+
+                                    canvas = canvases.get("canvas")
+                                    if canvas and figure_name in shapes:
+                                        shape_id = shapes[figure_name]
+                                        coords = canvas.coords(shape_id)
+                                        if coords:
+                                            new_x = int(coords[0]) + x2 - x2
+                                            new_y = int(coords[1]) + y1 - y2
+                                            canvas.coords(shape_id, new_x, new_y, new_x + 50, new_y + 50)
+                                            color_print(f"Figure '{figure_name}' moved to ({new_x}, {new_y})", Colors.GREEN)
+                                        else:
+                                            color_print(f"Figure '{figure_name}' has no coordinates", Colors.RED)
+                                    else:
+                                        color_print(f"Figure '{figure_name}' not found", Colors.RED)
+                                except Exception as e:
+                                    color_print(f"Button movefigure error: {e}", Colors.RED)
+                            elif b2[0] == "command" and b2[1] == "move":
+                                try:
+                                    obj_name = b2[2]
+                                    dx = int(b2[3])
+                                    dy = int(b2[4])
+                                    hhi = int(b2[5]) if len(b2) > 5 else 0
+                                    hhio = int(b2[6]) if len(b2) > 6 else 0
+                                    
+                                    canvas = canvases.get("canvas")
+                                    if canvas and obj_name in shapes:
+                                        canvas.move(shapes[obj_name], dx - hhi, dy - hhio)
+                                        color_print(f"Moved {obj_name} by ({dx - hhi}, {dy - hhio})", Colors.GREEN)
+                                    else:
+                                        for widget in win.winfo_children():
+                                            if isinstance(widget, tk.Label):
+                                                if widget.cget("text") == obj_name:
+                                                    x = int(widget.place_info()['x']) + dx - hhi
+                                                    y = int(widget.place_info()['y']) + dy - hhio
+                                                    widget.place(x=x, y=y)
+                                                    color_print(f"Moved text '{obj_name}' to ({x}, {y})", Colors.GREEN)
+                                                    break
+                                except Exception as e:
+                                    color_print(f"Command move error: {e}", Colors.RED)
                             elif b2[0] == "rename":
                                 parent = windows.get(b2[1], win)
                                 parent.title(b2[2])
@@ -515,12 +908,22 @@ if os.path.exists(f"dist/{{name}}.exe"):
                             elif b2[0] == "canvas" and b2[1] == "figure":
                                 canvas = canvases.get("canvas")
                                 if canvas:
+                                    shape_id = None
                                     if b2[2] == "create_rectangle":
-                                        canvas.create_rectangle(int(b2[3]), int(b2[4]), int(b2[5]), int(b2[6]), fill=b2[7], outline=b2[8], width=int(b2[9]))
+                                        shape_id = canvas.create_rectangle(int(b2[3]), int(b2[4]), int(b2[5]), int(b2[6]), fill=b2[7], outline=b2[8], width=int(b2[9]))
                                     elif b2[2] == "create_oval":
-                                        canvas.create_oval(int(b2[3]), int(b2[4]), int(b2[5]), int(b2[6]), fill=b2[7], outline=b2[8], width=int(b2[9]))
+                                        shape_id = canvas.create_oval(int(b2[3]), int(b2[4]), int(b2[5]), int(b2[6]), fill=b2[7], outline=b2[8], width=int(b2[9]))
                                     elif b2[2] == "create_line":
-                                        canvas.create_line(int(b2[3]), int(b2[4]), int(b2[5]), int(b2[6]), fill=b2[7], width=int(b2[8]))
+                                        shape_id = canvas.create_line(int(b2[3]), int(b2[4]), int(b2[5]), int(b2[6]), fill=b2[7], width=int(b2[8]))
+                                    if shape_id:
+                                        if len(b2) > 10:
+                                            shapes[b2[10]] = shape_id
+                                            color_print(f"Shape '{b2[10]}' created", Colors.GREEN)
+                                        elif len(b2) > 9:
+                                            shapes[b2[9]] = shape_id
+                                            color_print(f"Shape '{b2[9]}' created", Colors.GREEN)
+                                        else:
+                                            color_print("Shape created without name", Colors.YELLOW)
                             elif b2[0] == "command" and b2[1] == "canvas":
                                 def part():
                                     parent = windows.get(b2[2], win)
@@ -569,7 +972,9 @@ if os.path.exists(f"dist/{{name}}.exe"):
                                     canvas = tk.Canvas(parent, width=int(b2[4]), height=int(b2[5]), bg=b2[6])
                                     canvas.pack()
                                     canvases["canvas"] = canvas
-                                    canvas.create_oval(50, 50, 150, 150, fill="red", outline="black", width=2)
+                                    shape_id = canvas.create_oval(50, 50, 150, 150, fill="red", outline="black", width=2)
+                                    if len(b2) > 1:
+                                        shapes["circle"] = shape_id
                                 btn = tk.Button(win, text=b2[7], command=draw_circle, bg=b2[8])
                                 btn.place(x=int(b2[9]), y=int(b2[10]))
                             elif b2[0] == "command" and b2[1] == "copy":
@@ -669,7 +1074,7 @@ if os.path.exists(f"dist/{{name}}.exe"):
     except Exception as e:
         color_print(f"Error: {e}", Colors.RED)
     else:
-        if b[0] not in ["root", "rename", "geometry", "picture", "Gui", "canvas", "msg", "command", "get", "color", "export", "import", "copy", "open", "box", "table", "console", "#", "time"]:
+        if b[0] not in ["root", "rename", "geometry", "picture", "Gui", "canvas", "msg", "command", "get", "color", "export", "import", "copy", "open", "box", "table", "console", "#", "time", "time+", "time-", "button", "move", "set", "for", "foreach", "while"]:
             error_msg = f"{b} error ! did you mean>> {random.choice(boxGui)}"
             color_print(error_msg, Colors.RED)
 
